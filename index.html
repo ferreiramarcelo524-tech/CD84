@@ -102,13 +102,13 @@ footer{text-align:center}footer a{color:var(--mut);font-size:13px}
     <section id="so" class="hide"></section>
     <section id="sa" class="hide">
       <div class="card">
-        <h2>Registrar assistência</h2><p class="mut">Informe a avaria encontrada e anexe fotos para comprovar.</p>
+        <h2>Registrar assistência</h2><p class="mut">Informe a avaria encontrada e anexe pedidos para comprovar.</p>
         <label class="l" for="a-cli">Cliente / pedido</label><input id="a-cli" placeholder="Nome do cliente ou nº do pedido">
         <label class="l" for="a-end">Endereço da entrega</label><input id="a-end" placeholder="Rua, número, bairro">
         <label class="l" for="a-tipo">Tipo</label>
         <select id="a-tipo"><option>Avaria no produto</option><option>Avaria no carregamento</option><option>Produto faltando</option><option>Produto errado</option><option>Cliente recusou</option><option>Outro</option></select>
         <label class="l" for="a-desc">Descrição da avaria</label><textarea id="a-desc" rows="3" placeholder="Descreva o que aconteceu"></textarea>
-        <label class="cam" style="min-height:70px"><input type="file" accept="image/*" capture="environment" multiple onchange="pegarA(this)">Adicionar fotos</label>
+        <label class="cam" style="min-height:70px"><input type="file" accept="image/*" capture="environment" multiple onchange="pegarA(this)">Adicionar pedidos</label>
         <div class="thumbs" id="pf"></div>
         <button class="btn" onclick="enviarAss(this)">Enviar assistência</button>
       </div>
@@ -144,10 +144,17 @@ footer{text-align:center}footer a{color:var(--mut);font-size:13px}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 /* ===== CONFIGURAÇÃO ===== */
-const CFG={PIN:"1234",DOCAS:8,DIAS:7,DIAS_MOT:2,DIAS_ASS:90,FOTO_DIAS:30}; // FOTO_DIAS: fotos mais antigas são apagadas; o registro em texto fica
-const firebaseConfig={apiKey:"COLE_AQUI",authDomain:"",projectId:"",storageBucket:"",messagingSenderId:"",appId:""};
+const CFG={PIN:"1234",DOCAS:8,DIAS:7,DIAS_MOT:2,DIAS_ASS:90,FOTO_DIAS:30}; // FOTO_DIAS: pedidos mais antigos são apagadas; o registro em texto fica
+const firebaseConfig={
+  apiKey: "AIzaSyDQdTt00ZvImDdkpQrSHqcuWlojpARJHLM",
+  authDomain: "cd84-mateus.firebaseapp.com",
+  projectId: "cd84-mateus",
+  storageBucket: "cd84-mateus.firebasestorage.app",
+  messagingSenderId: "179465454930",
+  appId: "1:179465454930:web:47252b8d58d936e4e4e68b"
+};
 const FILA="fila_cd84",ASS="assistencias_cd84",FOT="fotos_cd84";
-const MOT=["Baú não está vazio","Foto ilegível","Placa não confere","Foto fora do pátio","Outro"];
+const MOT=["Baú não está vazio","Pedido ilegível","Placa não confere","Pedido fora do pátio","Outro"];
 const TRAT=["Reposição do produto","Troca do produto","Reparo no local","Retorno ao CD","Crédito ao cliente","Sem procedência"];
 const LB={analise:"Em análise",aprovado:"Na fila",carregando:"Carregando",finalizado:"Finalizado",reprovado:"Reprovado",cancelado:"Cancelado"};
 
@@ -181,7 +188,7 @@ const vz=t=>`<div class="vz">${t}</div>`;
 const tg=s=>{const c={"Em análise":"a","Aberta":"a","Na fila":"b","Em tratativa":"b","Carregando":"b","Concluída":"g","Finalizado":"g","Negada":"r","Reprovado":"r","Cancelado":"r"}[s]||"a";return`<span class="tg ${c}">${esc(s)}</span>`};
 function toast(t,e){const x=$("ts");x.textContent=t;x.style.background=e?"var(--bad)":"var(--ink)";x.style.display="block";clearTimeout(x.t);x.t=setTimeout(()=>x.style.display="none",2600)}
 const salvarFotos=a=>Promise.all(a.map((f,k)=>{const i=uid()+k;return S.put(i,f).then(()=>i)}));
-function ampliar(s){$("zm").innerHTML=[].concat(s).map(x=>`<img src="${x}" alt="Foto ampliada">`).join("");$("zm").style.display="flex"}
+function ampliar(s){$("zm").innerHTML=[].concat(s).map(x=>`<img src="${x}" alt="Pedido ampliado">`).join("");$("zm").style.display="flex"}
 function foto(file,placa){return new Promise((ok,no)=>{const r=new FileReader();r.onerror=no;r.onload=()=>{const i=new Image();i.onerror=no;i.onload=()=>{
  const k=Math.min(1,900/Math.max(i.width,i.height)),c=document.createElement("canvas");c.width=i.width*k;c.height=i.height*k;
  const x=c.getContext("2d");x.drawImage(i,0,0,c.width,c.height);const h=Math.max(22,c.height*.045);
@@ -207,7 +214,7 @@ function rFila(){
  let h="";
  if(ativo){
   h+=`<div class="card">${steps(["analise","aprovado","carregando"].indexOf(st))}`;
-  if(st==="analise")h+=`<div class="c"><div class="spin"></div><h2>Foto em análise</h2><p class="mut">O administrador está conferindo o baú. Enviada às ${hm(mine.ts)}.</p></div>`;
+  if(st==="analise")h+=`<div class="c"><div class="spin"></div><h2>Pedido em análise</h2><p class="mut">O administrador está conferindo o baú. Enviada às ${hm(mine.ts)}.</p></div>`;
   if(st==="aprovado"){const p=q.findIndex(x=>x.id===mine.id)+1;
    h+=`<div class="pos"><b>${p}º</b><span>${p===1?"Você é o próximo a carregar":`${p-1} veículo(s) à sua frente`}</span></div><p class="c mut">${q.length} veículo(s) na fila · aprovado às ${hm(mine.tsAprov||mine.ts)}. Fique atento ao chamado.</p>`}
   if(st==="carregando")h+=`<div class="pos go"><b>Doca ${esc(mine.doca)}</b><span>Dirija-se à doca para carregar</span></div>`;
@@ -215,10 +222,10 @@ function rFila(){
   h+=`</div>`;
  }else{
   if(st==="finalizado")h+=`<div class="card okc"><h2>Carregamento concluído</h2><p>Boa viagem, ${esc(me.nome)}.</p></div>`;
-  if(st==="reprovado")h+=`<div class="card badc"><h2>Foto reprovada</h2><p>${esc(mine.motivo||"Envie uma nova foto.")}</p></div>`;
+  if(st==="reprovado")h+=`<div class="card badc"><h2>Pedido reprovado</h2><p>${esc(mine.motivo||"Envie um novo pedido.")}</p></div>`;
   h+=`<div class="card"><h2>Marcar minha vez</h2>
    <div class="seg"><button class="${vez==="vazio"?"on":""}" onclick="setVez('vazio')">Baú vazio</button><button class="${vez==="retorno"?"on":""}" onclick="setVez('retorno')">Com retorno</button></div>
-   ${vez==="vazio"?`<p class="mut">Fotografe o baú vazio e aberto, com a placa visível. A foto sai com data, hora e placa.</p>
+   ${vez==="vazio"?`<p class="mut">Fotografe o baú vazio e aberto, com a placa visível. O pedido sai com data, hora e placa.</p>
    <label class="cam"><input type="file" accept="image/*" capture="environment" onchange="pegar(this)">${pend?`<img src="${pend}" alt="Prévia">`:"Abrir câmera"}</label>`
    :`<p class="mut">Fotografe todas as folhas do romaneio e descreva o motivo do retorno.</p>
    <label class="cam" style="min-height:70px"><input type="file" accept="image/*" capture="environment" multiple onchange="pegarR(this)">Fotografar romaneio</label>
@@ -228,13 +235,13 @@ function rFila(){
  }
  $("sf").innerHTML=h}
 function setVez(v){vez=v;rFila()}
-async function pegar(i){const f=i.files[0];if(!f)return;try{pend=await foto(f,me.placa);rFila()}catch(e){toast("Não foi possível ler a foto",1)}}
-async function pegarR(i){try{for(const f of i.files)pendR.push(await foto(f,me.placa));}catch(e){toast("Não foi possível ler a foto",1)}rFila()}
+async function pegar(i){const f=i.files[0];if(!f)return;try{pend=await foto(f,me.placa);rFila()}catch(e){toast("Não foi possível ler o pedido",1)}}
+async function pegarR(i){try{for(const f of i.files)pendR.push(await foto(f,me.placa));}catch(e){toast("Não foi possível ler o pedido",1)}rFila()}
 async function enviarVez(b){const r=vez==="retorno";
  if(r&&!pendR.length)return toast("Anexe a foto do romaneio",1);
  if(r&&rmot.trim().length<5)return toast("Descreva o motivo do retorno",1);
  if(!r&&!pend)return toast("Tire a foto do baú vazio",1);
- b.disabled=true;toast("Enviando fotos...");try{const id=uid(),fotos=await salvarFotos(r?pendR:[pend]);await S.add(FILA,{placa:me.placa,motorista:me.nome,tipo:me.tipo,vez,retMotivo:r?rmot.trim():"",fotos,status:"analise",ts:Date.now()},id);pend=null;pendR=[];rmot="";vez="vazio";sig="";toast("Enviado para análise")}catch(e){b.disabled=false;toast("Falha ao enviar",1)}}
+ b.disabled=true;toast("Enviando pedidos...");try{const id=uid(),fotos=await salvarFotos(r?pendR:[pend]);await S.add(FILA,{placa:me.placa,motorista:me.nome,tipo:me.tipo,vez,retMotivo:r?rmot.trim():"",fotos,status:"analise",ts:Date.now()},id);pend=null;pendR=[];rmot="";vez="vazio";sig="";toast("Enviado para análise")}catch(e){b.disabled=false;toast("Falha ao enviar",1)}}
 function rOrdem(){
  const car=FL.filter(x=>x.status==="carregando").sort((a,b)=>a.tsDoca-b.tsDoca),q=FL.filter(x=>x.status==="aprovado").sort((a,b)=>a.ts-b.ts),an=FL.filter(x=>x.status==="analise").length;
  const row=(n,x,ex)=>`<div class="card ${x.placa===me.placa?"me":""}"><div class="row"><div class="n">${n}</div>${chip(x.placa)}<div><b>${esc(x.tipo)}${x.vez==="retorno"?" · retorno":""}</b><small>chegou às ${hm(x.ts)}${ex||""}</small></div>${x.placa===me.placa?`<span class="tg b">Você</span>`:""}</div></div>`;
@@ -243,10 +250,10 @@ function rOrdem(){
  +`<h3>Ordem de carregamento</h3>`+(q.map((x,i)=>row((i+1)+"º",x)).join("")||vz("Nenhum veículo aguardando."))}
 function sair(id){if(confirm("Sair da fila?"))S.upd(FILA,id,{status:"cancelado"})}
 async function pegarA(i){for(const f of i.files)pfs.push(await foto(f,me.placa));i.value="";rPf()}
-function rPf(){$("pf").innerHTML=pfs.map((s,i)=>`<img src="${s}" alt="Foto ${i+1}" title="Toque para remover" onclick="pfs.splice(${i},1);rPf()">`).join("")}
+function rPf(){$("pf").innerHTML=pfs.map((s,i)=>`<img src="${s}" alt="Pedido ${i+1}" title="Toque para remover" onclick="pfs.splice(${i},1);rPf()">`).join("")}
 async function enviarAss(b){const cli=$("a-cli").value.trim(),d=$("a-desc").value.trim();
- if(!cli||!d)return toast("Informe cliente/pedido e a descrição",1);if(!pfs.length)return toast("Anexe ao menos uma foto",1);
- b.disabled=true;toast("Enviando fotos...");try{const fotoIds=await salvarFotos(pfs);await S.add(ASS,{placa:me.placa,motorista:me.nome,cliente:cli,endereco:$("a-end").value.trim(),tipo:$("a-tipo").value,descricao:d,fotoIds,status:"Aberta",ts:Date.now()});
+ if(!cli||!d)return toast("Informe cliente/pedido e a descrição",1);if(!pfs.length)return toast("Anexe ao menos um pedido",1);
+ b.disabled=true;toast("Enviando pedidos...");try{const fotoIds=await salvarFotos(pfs);await S.add(ASS,{placa:me.placa,motorista:me.nome,cliente:cli,endereco:$("a-end").value.trim(),tipo:$("a-tipo").value,descricao:d,fotoIds,status:"Aberta",ts:Date.now()});
  pfs=[];rPf();["a-cli","a-end","a-desc"].forEach(i=>$(i).value="");toast("Assistência enviada")}catch(e){toast("Falha ao enviar. Tente novamente.",1)}b.disabled=false}
 function rMin(){$("minhas").innerHTML=AM.filter(a=>!a.concluidaMot).sort((a,b)=>b.ts-a.ts).map(a=>`<div class="card"><div class="row"><div><b>${esc(a.tipo)}</b><small>${esc(a.cliente)} · ${fmt(a.ts)}</small></div>${tg(a.status)}</div>${a.trat?`<p class="resp"><b>${esc(a.trat)}</b>${a.obs?": "+esc(a.obs):""}</p>`:""}<button class="btn ok sm" style="margin-top:10px" onclick="concl('${a.id}','${a.status}')">Confirmar conclusão</button></div>`).join("")||`<p class="mut">Nenhuma assistência em andamento.</p>`}
 function concl(id,st){if(confirm("Confirmar que a assistência foi concluída? Ela sairá da sua lista."))S.upd(ASS,id,{concluidaMot:true,tsConc:Date.now(),status:st==="Negada"?"Negada":"Concluída"})}
@@ -260,7 +267,7 @@ function entrar(){if($("pin").value!==CFG.PIN)return toast("PIN incorreto",1);
 function beep(){if(!AC)return;AC.resume();const t=AC.currentTime;[880,1175].forEach((f,i)=>{const o=AC.createOscillator();o.connect(AC.destination);o.frequency.value=f;o.start(t+i*.18);o.stop(t+i*.18+.14)})}
 const pendIds=()=>[...AF.filter(x=>x.status==="analise").map(x=>"f"+x.id),...AA.filter(a=>a.status==="Aberta"&&!a.concluidaMot).map(a=>"a"+a.id)];
 function rAl(){const un=pendIds().filter(k=>!SEEN.has(k));UN=un.length;const nf=un.filter(k=>k[0]==="f").length,na=UN-nf,el=$("al");
- el.classList.toggle("hide",!UN);if(UN)el.innerHTML=`<span>${[nf?nf+" foto(s) para análise":"",na?na+" assistência(s) nova(s)":""].filter(Boolean).join(" · ")}</span><button class="btn sm" onclick="ciente()">Verificar</button>`}
+ el.classList.toggle("hide",!UN);if(UN)el.innerHTML=`<span>${[nf?nf+" pedido(s) para análise":"",na?na+" assistência(s) nova(s)":""].filter(Boolean).join(" · ")}</span><button class="btn sm" onclick="ciente()">Verificar</button>`}
 function ack(t){pendIds().filter(k=>k[0]==={an:"f",as:"a"}[t]).forEach(k=>SEEN.add(k))}
 function ciente(){at=pendIds().some(k=>k[0]==="f"&&!SEEN.has(k))?"an":"as";ack(at);rAdm()}
 const qAp=()=>AF.filter(x=>x.status==="aprovado").sort((a,b)=>a.ts-b.ts);
@@ -269,15 +276,15 @@ function rAdm(){
  rAl();const e=document.activeElement;if(e&&["INPUT","TEXTAREA","SELECT"].includes(e.tagName)&&$("pn").contains(e)&&e.id!=="hb")return;
  const nAn=AF.filter(x=>x.status==="analise").length,nFl=qAp().length,nCar=AF.filter(x=>x.status==="carregando").length,nAs=AA.filter(aberta).length;
  $("kp").innerHTML=[["Aguardando análise",nAn],["Na fila",nFl],["Carregando",nCar],["Assistências abertas",nAs]].map(k=>`<div><b>${k[1]}</b><span>${k[0]}</span></div>`).join("");
- $("tb").innerHTML=[["an","Análise de fotos",nAn],["fl","Fila de carregamento",nFl],["as","Assistências",nAs],["hi","Histórico"]].map(t=>`<button class="${at===t[0]?"on":""}" onclick="at='${t[0]}';ack('${t[0]}');rAdm()">${t[1]}${t[2]?`<i>${t[2]}</i>`:""}</button>`).join("");
+ $("tb").innerHTML=[["an","Análise de pedidos",nAn],["fl","Fila de carregamento",nFl],["as","Assistências",nAs],["hi","Histórico"]].map(t=>`<button class="${at===t[0]?"on":""}" onclick="at='${t[0]}';ack('${t[0]}');rAdm()">${t[1]}${t[2]?`<i>${t[2]}</i>`:""}</button>`).join("");
  ({an:rAn,fl:rFl,as:rAs,hi:rHi})[at]();
  loadF()}
 async function gf(csv){const o=[];for(const id of csv.split(",")){if(!(id in FC))FC[id]=await S.get(id);o.push(...[].concat(FC[id]||[]))}return o}
-function loadF(){document.querySelectorAll("[data-f]").forEach(async el=>{if(el.dataset.ok||el.closest("details:not([open])"))return;el.dataset.ok=1;const a=await gf(el.dataset.f);if(!a.length){el.className="mut";el.textContent="Fotos removidas após "+CFG.FOTO_DIAS+" dias.";return}el.style.gridTemplateColumns=a.length>1?"":"1fr";el.innerHTML=a.map(s=>`<img src="${s}" alt="Foto">`).join("");el.onclick=()=>ampliar(a)})}
+function loadF(){document.querySelectorAll("[data-f]").forEach(async el=>{if(el.dataset.ok||el.closest("details:not([open])"))return;el.dataset.ok=1;const a=await gf(el.dataset.f);if(!a.length){el.className="mut";el.textContent="Pedidos removidos após "+CFG.FOTO_DIAS+" dias.";return}el.style.gridTemplateColumns=a.length>1?"":"1fr";el.innerHTML=a.map(s=>`<img src="${s}" alt="Pedido">`).join("");el.onclick=()=>ampliar(a)})}
 function rAn(){const an=AF.filter(x=>x.status==="analise").sort((a,b)=>a.ts-b.ts);
  $("tc").innerHTML=an.map(x=>`<div class="card"><div class="row">${chip(x.placa)}<div><b>${esc(x.motorista)}</b><small>${esc(x.tipo)} · chegou às ${hm(x.ts)} (há ${dur(Date.now()-x.ts)})</small></div></div>
  ${x.vez==="retorno"?`<p class="resp"><span class="tg a">Com retorno</span> ${esc(x.retMotivo)}</p>`:""}<div class="gal fw" data-f="${(x.fotos||[x.id]).join(",")}"></div>
- <div class="acts"><button class="btn ok" onclick="apr('${x.id}')">Aprovar</button><select id="mv${x.id}" aria-label="Motivo">${MOT.map(m=>`<option>${m}</option>`).join("")}</select><button class="btn bad" onclick="rep('${x.id}')">Reprovar</button></div></div>`).join("")||vz("Nenhuma foto aguardando análise.")}
+ <div class="acts"><button class="btn ok" onclick="apr('${x.id}')">Aprovar</button><select id="mv${x.id}" aria-label="Motivo">${MOT.map(m=>`<option>${m}</option>`).join("")}</select><button class="btn bad" onclick="rep('${x.id}')">Reprovar</button></div></div>`).join("")||vz("Nenhum pedido aguardando análise.")}
 const apr=id=>S.upd(FILA,id,{status:"aprovado",tsAprov:Date.now()});
 const rep=id=>S.upd(FILA,id,{status:"reprovado",motivo:$("mv"+id).value});
 function rFl(){const car=AF.filter(x=>x.status==="carregando").sort((a,b)=>a.tsDoca-b.tsDoca),q=qAp(),us=car.map(x=>+x.doca);
@@ -296,7 +303,7 @@ function rAs(){const l=AA.filter(a=>filt==="todas"||aberta(a)),g={};l.forEach(a=
  h+=Object.keys(g).sort().map(p=>{const ab=g[p].filter(aberta).length;
   return`<details class="v" ${OP.has(p)?"open":""} ontoggle="this.open?OP.add('${p}'):OP.delete('${p}');loadF()"><summary>${chip(p)}<span class="tg ${ab?"a":"g"}">${ab?ab+" aberta(s)":"Tratadas"}</span></summary>
   ${g[p].sort((a,b)=>b.ts-a.ts).map(a=>`<div class="ass"><div class="row"><div><b>${esc(a.tipo)}</b><small>${esc(a.cliente)}${a.endereco?" · "+esc(a.endereco):""}</small><small>${fmt(a.ts)} · ${esc(a.motorista)}</small>${a.concluidaMot?`<small>Concluída pelo motorista em ${fmt(a.tsConc)}</small>`:""}</div>${tg(a.status)}</div>
-  <p>${esc(a.descricao)}</p>${a.fotoIds&&a.fotoIds.length?`<div class="gal fw" data-f="${a.fotoIds.join(",")}"></div>`:`<div class="gal">${(a.fotos||[]).map(f=>`<img src="${f}" alt="Foto da assistência" onclick="ampliar(this.src)">`).join("")}</div>`}
+  <p>${esc(a.descricao)}</p>${a.fotoIds&&a.fotoIds.length?`<div class="gal fw" data-f="${a.fotoIds.join(",")}"></div>`:`<div class="gal">${(a.fotos||[]).map(f=>`<img src="${f}" alt="Pedido da assistência" onclick="ampliar(this.src)">`).join("")}</div>`}
   <label class="l" for="tt${a.id}">Tratativa</label><select id="tt${a.id}">${TRAT.map(t=>`<option ${a.trat===t?"selected":""}>${t}</option>`).join("")}</select>
   <textarea id="ob${a.id}" rows="2" style="margin-top:8px" placeholder="Observação para o motorista">${esc(a.obs||"")}</textarea>
   <div class="acts" style="grid-template-columns:1fr 1fr"><button class="btn" onclick="trat('${a.id}','Em tratativa')">Salvar tratativa</button><button class="btn ok" onclick="trat('${a.id}','Concluída')">Concluir</button></div></div>`).join("")}</details>`}).join("")||vz("Nenhuma assistência.");
@@ -304,7 +311,7 @@ function rAs(){const l=AA.filter(a=>filt==="todas"||aberta(a)),g={};l.forEach(a=
 function trat(id,st){const t=$("tt"+id).value;S.upd(ASS,id,{trat:t,obs:$("ob"+id).value.trim(),status:st==="Concluída"&&t==="Sem procedência"?"Negada":st,tsTrat:Date.now()});toast("Tratativa registrada")}
 function rHi(){if(!$("hb")){$("tc").innerHTML=`<input id="hb" placeholder="Digite a placa (mín. 3 caracteres)" style="text-transform:uppercase;font-weight:800;letter-spacing:2px" oninput="rHi()"><div id="hl" style="margin-top:12px"></div>`}
  const q=nP($("hb").value),it=q.length<3?[]:[...AF.filter(x=>x.placa.includes(q)).map(x=>({t:x.ts,k:"Fila",p:x.placa,s:LB[x.status],d:[x.vez==="retorno"?"Retorno: "+x.retMotivo:"",x.motivo,x.doca?"Doca "+x.doca:""].filter(Boolean).join(" · "),i:(x.fotos||[x.id]).join(",")})),...AA.filter(x=>x.placa.includes(q)).map(x=>({t:x.ts,k:"Assistência",p:x.placa,s:x.status,d:x.tipo+" — "+x.cliente}))].sort((a,b)=>b.t-a.t);
- $("hl").innerHTML=it.length?`<div class="card" style="overflow-x:auto"><table><thead><tr><th>Data</th><th>Placa</th><th>Tipo</th><th>Status</th><th>Detalhe</th></tr></thead><tbody>${it.map(x=>`<tr><td>${fmt(x.t)}</td><td>${esc(x.p)}</td><td>${x.k}</td><td>${tg(x.s)}</td><td>${esc(x.d)} ${x.i?`<button class="btn ghost sm" onclick="vf('${x.i}')">Foto</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:vz(q.length<3?"Busque pela placa para ver o histórico.":"Nada encontrado.")}
+ $("hl").innerHTML=it.length?`<div class="card" style="overflow-x:auto"><table><thead><tr><th>Data</th><th>Placa</th><th>Tipo</th><th>Status</th><th>Detalhe</th></tr></thead><tbody>${it.map(x=>`<tr><td>${fmt(x.t)}</td><td>${esc(x.p)}</td><td>${x.k}</td><td>${tg(x.s)}</td><td>${esc(x.d)}${x.i?`<button class="btn ghost sm" onclick="vf('${x.i}')">Pedido</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:vz(q.length<3?"Busque pela placa para ver o histórico.":"Nada encontrado.")}
 async function purge(){
  if(!online||localStorage.getItem("purge")===new Date().toDateString())return;
  localStorage.setItem("purge",new Date().toDateString());
@@ -317,7 +324,7 @@ async function purge(){
    ids.forEach(i=>b.delete(db.collection(FOT).doc(i)));
    b.update(d.ref,c===ASS&&x.fotos?{fotosApagadas:true,fotos:firebase.firestore.FieldValue.delete()}:{fotosApagadas:true});n+=ids.length+1}
   if(n)await b.commit()}}catch(e){localStorage.removeItem("purge")}}
-function vf(c){gf(c).then(a=>a.length?ampliar(a):toast("Sem foto",1))}
+function vf(c){gf(c).then(a=>a.length?ampliar(a):toast("Sem pedido",1))}
 
 /* ===== INÍCIO ===== */
 function modo(a){const adm=a===undefined?$("adm").classList.contains("hide"):a;
